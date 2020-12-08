@@ -1,17 +1,3 @@
-/**
- * @defgroup   SAXPY saxpy
- *
- * @brief      This file implements an iterative saxpy operation
- * 
- * @param[in] <-p> {vector size} 
- * @param[in] <-s> {seed}
- * @param[in] <-n> {number of threads to create} 
- * @param[in] <-i> {maximum itertions} 
- *
- * @author     Danny Munera
- * @date       2020
- */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -19,7 +5,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <sys/time.h>
-#include <sched.h>
+
 typedef struct Args{
 	int curr_index;
 	int end_index;
@@ -39,12 +25,11 @@ pthread_mutex_t lock;
 int p = 10000000;
 Saxpy_args **create_args(int n_elements, int n_threads, int max_iters, int *n_threads_finished, int *n_iter,
 double scalar,  double *X, double *Y, double *Y_avgs);
+double calculate_saxpy_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y);
+void update_Y_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y);
 void *calculate_saxpy(void *args);
 pthread_t *create_thread_arr(int n_threads, Saxpy_args **args);
 void wait_for_threads(pthread_t *threads, int n_threads);
-int all_threads_finished(int *threads_finished, int n_threads);
-void reset_threads_finished(int *threads_finished, int n_threads);
-double add_counters(double *counters, int n_counters);
 
 int main(int argc, char* argv[]){
 	unsigned int value = 0;
@@ -52,7 +37,7 @@ int main(int argc, char* argv[]){
 	sem_init(&sem1, 0, 0);
 	// Variables to obtain command line parameters
 	unsigned int seed = 1;
-	int n_threads = 2;
+	int n_threads = 8;
   	int max_iters = 1000;
   	// Variables to perform SAXPY operation
 	double* X;
@@ -189,6 +174,22 @@ double scalar,  double *X, double *Y, double *Y_avgs){
 	}
 	return args;
 }
+
+double calculate_saxpy_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y){
+	double result = 0.0;
+	while(curr_index <= end_index){
+		result += scalar*n_time*X[curr_index] + Y[curr_index];
+		curr_index ++;
+	}
+	return result;
+}
+
+void update_Y_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y){
+	while(curr_index <= end_index){
+		Y[curr_index] = scalar*n_time*X[curr_index] + Y[curr_index];
+		curr_index++;
+	}
+}
 void *calculate_saxpy(void *args){
 	Saxpy_args *saxpy_args = (Saxpy_args*)args;
 	int curr_index = saxpy_args -> curr_index;
@@ -201,15 +202,11 @@ void *calculate_saxpy(void *args){
 	double *X = saxpy_args -> X;
 	double *Y = saxpy_args -> Y;
 	double *Y_avgs = saxpy_args -> Y_avgs;
-	double counter;
+	double result;
 	while(*n_iter < max_iters){
-		counter = 0.0;
-		for(int index = curr_index; index <= end_index; index++){
-			Y[index] += scalar*X[index];
-			counter += Y[index];
-		}
+		result = calculate_saxpy_n_time(curr_index, end_index, *n_iter+1, scalar, X, Y)/p;
 		pthread_mutex_lock(&lock);
-		Y_avgs[*n_iter] += (counter/p);
+		Y_avgs[*n_iter] += result;
 		(*n_threads_finished)++;
 		if(*n_threads_finished == n_threads){
 			(*n_iter)++;
@@ -227,8 +224,9 @@ void *calculate_saxpy(void *args){
 		}
 		pthread_mutex_unlock(&lock);
 		sem_wait(&sem1);
-		sem_post(&sem1);
+		sem_post(&sem1);		
 	}
+	update_Y_n_time(curr_index, end_index, max_iters, scalar, X, Y);
 	pthread_exit(NULL);
 }
 

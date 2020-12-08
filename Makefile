@@ -1,4 +1,4 @@
-SRCS = saxpy.c
+SRCS = saxpy_thread.c
 TARG = saxpy.out
 OBJS = $(SRCS:.c=.o)
 
