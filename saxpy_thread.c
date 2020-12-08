@@ -19,8 +19,8 @@ typedef struct Args{
 	double *Y_avgs;
 }Saxpy_args;
 
-sem_t sem;
 sem_t sem1;
+sem_t sem2;
 pthread_mutex_t lock;
 int p = 10000000;
 Saxpy_args **create_args(int n_elements, int n_threads, int max_iters, int *n_threads_finished, int *n_iter,
@@ -33,8 +33,8 @@ void wait_for_threads(pthread_t *threads, int n_threads);
 
 int main(int argc, char* argv[]){
 	unsigned int value = 0;
-	sem_init(&sem, 0, value);
-	sem_init(&sem1, 0, 0);
+	sem_init(&sem1, 0, value);
+	sem_init(&sem2, 0, 1);
 	// Variables to obtain command line parameters
 	unsigned int seed = 1;
 	int n_threads = 16;
@@ -210,21 +210,21 @@ void *calculate_saxpy(void *args){
 		(*n_threads_finished)++;
 		if(*n_threads_finished == n_threads){
 			(*n_iter)++;
-			sem_init(&sem1, 0, 0);
-			sem_post(&sem);
-		}
-		pthread_mutex_unlock(&lock);
-		sem_wait(&sem);
-		sem_post(&sem);
-		pthread_mutex_lock(&lock);
-		(*n_threads_finished)--;
-		if(*n_threads_finished == 0){
-			sem_init(&sem, 0, 0);
+			sem_init(&sem2, 0, 0);
 			sem_post(&sem1);
 		}
 		pthread_mutex_unlock(&lock);
 		sem_wait(&sem1);
-		sem_post(&sem1);		
+		sem_post(&sem1);
+		pthread_mutex_lock(&lock);
+		(*n_threads_finished)--;
+		if(*n_threads_finished == 0){
+			sem_init(&sem1, 0, 0);
+			sem_post(&sem2);
+		}
+		pthread_mutex_unlock(&lock);
+		sem_wait(&sem2);
+		sem_post(&sem2);		
 	}
 	update_Y_n_time(curr_index, end_index, max_iters, scalar, X, Y);
 	pthread_exit(NULL);
