@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
 	sem_init(&sem1, 0, 0);
 	// Variables to obtain command line parameters
 	unsigned int seed = 1;
-	int n_threads = 8;
+	int n_threads = 16;
   	int max_iters = 1000;
   	// Variables to perform SAXPY operation
 	double* X;
