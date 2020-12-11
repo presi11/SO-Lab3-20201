@@ -175,21 +175,6 @@ double scalar,  double *X, double *Y, double *Y_avgs){
 	return args;
 }
 
-double calculate_saxpy_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y){
-	double result = 0.0;
-	while(curr_index <= end_index){
-		result += scalar*n_time*X[curr_index] + Y[curr_index];
-		curr_index ++;
-	}
-	return result;
-}
-
-void update_Y_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y){
-	while(curr_index <= end_index){
-		Y[curr_index] = scalar*n_time*X[curr_index] + Y[curr_index];
-		curr_index++;
-	}
-}
 void *calculate_saxpy(void *args){
 	Saxpy_args *saxpy_args = (Saxpy_args*)args;
 	int curr_index = saxpy_args -> curr_index;
@@ -241,4 +226,19 @@ void wait_for_threads(pthread_t *threads, int n_threads){
 	while(n_threads--){
 		pthread_join(threads[n_threads], NULL);
 	}
+}
+
+void update_Y_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y){
+	while(curr_index <= end_index){
+		Y[curr_index] = scalar*n_time*X[curr_index] + Y[curr_index];
+		curr_index++;
+	}
+}
+double calculate_saxpy_n_time(int curr_index, int end_index, int n_time, double scalar, double *X, double *Y){
+	double result = 0.0;
+	while(curr_index <= end_index){
+		result += scalar*n_time*X[curr_index] + Y[curr_index];
+		curr_index ++;
+	}
+	return result;
 }
